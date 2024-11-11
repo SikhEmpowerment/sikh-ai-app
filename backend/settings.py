@@ -41,11 +41,11 @@ class _UiSettings(BaseSettings):
         env_ignore_empty=True
     )
 
-    title: str = "SikhAI"
+    title: str = "SikhAI DEV"
     logo: Optional[str] = "static/sikhailogo.png"
     chat_logo: Optional[str] = "static/sikhailogo.png"
     chat_title: str = "Start chatting"
-    chat_description: str = """This chatbot is configured to answer your questions about anything regarding Sikhism. \nAny feedback or suggestions can be sent at: sikhempowermentassociation@gmail.com"""
+    chat_description: str = """This chatbot (Dev website) is configured to answer your questions about anything regarding Sikhism. \nAny feedback or suggestions can be sent at: sikhempowermentassociation@gmail.com"""
     favicon: str = "static/sikhailogo.png"
     show_share_button: bool = True
     show_chat_history_button: bool = True
