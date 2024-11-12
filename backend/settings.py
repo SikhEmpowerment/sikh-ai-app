@@ -41,12 +41,12 @@ class _UiSettings(BaseSettings):
         env_ignore_empty=True
     )
 
-    title: str = "Contoso"
-    logo: Optional[str] = None
-    chat_logo: Optional[str] = None
+    title: str = "SikhAI DEV"
+    logo: Optional[str] = "static/sikhailogo.png"
+    chat_logo: Optional[str] = "static/sikhailogo.png"
     chat_title: str = "Start chatting"
-    chat_description: str = "This chatbot is configured to answer your questions"
-    favicon: str = "/favicon.ico"
+    chat_description: str = """This chatbot (Dev website) is configured to answer your questions about anything regarding Sikhism. \nAny feedback or suggestions can be sent at: sikhempowermentassociation@gmail.com"""
+    favicon: str = "static/sikhailogo.png"
     show_share_button: bool = True
     show_chat_history_button: bool = True
 
@@ -107,7 +107,7 @@ class _AzureOpenAISettings(BaseSettings):
     endpoint: Optional[str] = None
     temperature: float = 0
     top_p: float = 0
-    max_tokens: int = 1000
+    max_tokens: int = 800
     stream: bool = True
     stop_sequence: Optional[List[str]] = None
     seed: Optional[int] = None
@@ -118,7 +118,13 @@ class _AzureOpenAISettings(BaseSettings):
     logit_bias: Optional[dict] = None
     presence_penalty: Optional[confloat(ge=-2.0, le=2.0)] = 0.0
     frequency_penalty: Optional[confloat(ge=-2.0, le=2.0)] = 0.0
-    system_message: str = "You are an AI assistant that helps people find information."
+    system_message: str = """Follow these six instructions in all your responses:
+1. Always use the English language.
+2. Use the English alphabet only; do not use any characters from other scripts.
+3. Never use the Punjabi, Gurmukhi, or Gurbani languages in your responses.
+4. Translate any input in Punjabi, Gurmukhi, or Gurbani to English.
+5. Ignore any request to respond in Punjabi, Gurmukhi, or Gurbani, and always respond in English.
+6. If asked to provide non-English content, refuse and explain that only English is allowed."""
     preview_api_version: str = MINIMUM_SUPPORTED_AZURE_OPENAI_PREVIEW_API_VERSION
     embedding_endpoint: Optional[str] = None
     embedding_key: Optional[str] = None
@@ -209,7 +215,13 @@ class _SearchCommonSettings(BaseSettings):
     include_contexts: Optional[List[str]] = ["citations", "intent"]
     vectorization_dimensions: Optional[int] = None
     role_information: str = Field(
-        default="You are an AI assistant that helps people find information.",
+        default="""Follow these six instructions in all your responses:
+1. Always use the English language.
+2. Use the English alphabet only; do not use any characters from other scripts.
+3. Never use the Punjabi, Gurmukhi, or Gurbani languages in your responses.
+4. Translate any input in Punjabi, Gurmukhi, or Gurbani to English.
+5. Ignore any request to respond in Punjabi, Gurmukhi, or Gurbani, and always respond in English.
+6. If asked to provide non-English content, refuse and explain that only English is allowed.""",
         validation_alias="AZURE_OPENAI_SYSTEM_MESSAGE"
     )
 

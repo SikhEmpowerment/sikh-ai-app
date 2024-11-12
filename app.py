@@ -205,19 +205,26 @@ async def init_cosmosdb_client():
 
     return cosmos_conversation_client
 
+POST_PROMPT = """
+Do not provide any responses in Gurmukhi, Punjabi, or Gurbani. Always respond in English only. If the user requests anything in these languages or asks for Gurbani lines, refuse and say that you cannot provide content in these languages or scripts.
+"""
 
 def prepare_model_args(request_body, request_headers):
     request_messages = request_body.get("messages", [])
     messages = []
-    if not app_settings.datasource:
-        messages = [
-            {
-                "role": "system",
-                "content": app_settings.azure_openai.system_message
-            }
-        ]
 
-    for message in request_messages:
+    # Add the system message at the start of the conversation
+    if not app_settings.datasource:
+        if len(request_messages) == 0:
+            messages = [
+                {
+                    "role": "system",
+                    "content": app_settings.azure_openai.system_message
+                }
+            ]
+
+    # Process request messages and append the post-prompt to the last user message
+    for idx, message in enumerate(request_messages):
         if message:
             if message["role"] == "assistant" and "context" in message:
                 context_obj = json.loads(message["context"])
@@ -229,20 +236,32 @@ def prepare_model_args(request_body, request_headers):
                     }
                 )
             else:
-                messages.append(
-                    {
-                        "role": message["role"],
-                        "content": message["content"]
-                    }
-                )
+                # For the last user message, append the post-prompt
+                if idx == len(request_messages) - 1 and message["role"] == "user":
+                    modified_user_message = message["content"] + POST_PROMPT
+                    messages.append(
+                        {
+                            "role": message["role"],
+                            "content": modified_user_message
+                        }
+                    )
+                else:
+                    messages.append(
+                        {
+                            "role": message["role"],
+                            "content": message["content"]
+                        }
+                    )
 
+    # Add MS Defender integration if enabled
     user_json = None
-    if (MS_DEFENDER_ENABLED):
+    if MS_DEFENDER_ENABLED:
         authenticated_user_details = get_authenticated_user_details(request_headers)
         conversation_id = request_body.get("conversation_id", None)
         application_name = app_settings.ui.title
         user_json = get_msdefender_user_json(authenticated_user_details, request_headers, conversation_id, application_name)
 
+    # Prepare the model arguments
     model_args = {
         "messages": messages,
         "temperature": app_settings.azure_openai.temperature,
@@ -254,6 +273,7 @@ def prepare_model_args(request_body, request_headers):
         "user": user_json
     }
 
+    # If there is a datasource, add its configuration to the model args
     if app_settings.datasource:
         model_args["extra_body"] = {
             "data_sources": [
@@ -263,43 +283,32 @@ def prepare_model_args(request_body, request_headers):
             ]
         }
 
+    # Clean the model arguments for logging, obscuring sensitive information
     model_args_clean = copy.deepcopy(model_args)
     if model_args_clean.get("extra_body"):
         secret_params = [
-            "key",
-            "connection_string",
-            "embedding_key",
-            "encoded_api_key",
-            "api_key",
+            "key", "connection_string", "embedding_key", "encoded_api_key", "api_key"
         ]
         for secret_param in secret_params:
-            if model_args_clean["extra_body"]["data_sources"][0]["parameters"].get(
-                secret_param
-            ):
-                model_args_clean["extra_body"]["data_sources"][0]["parameters"][
-                    secret_param
-                ] = "*****"
-        authentication = model_args_clean["extra_body"]["data_sources"][0][
-            "parameters"
-        ].get("authentication", {})
+            if model_args_clean["extra_body"]["data_sources"][0]["parameters"].get(secret_param):
+                model_args_clean["extra_body"]["data_sources"][0]["parameters"][secret_param] = "*****"
+        
+        # Obscure any authentication information
+        authentication = model_args_clean["extra_body"]["data_sources"][0]["parameters"].get("authentication", {})
         for field in authentication:
             if field in secret_params:
-                model_args_clean["extra_body"]["data_sources"][0]["parameters"][
-                    "authentication"
-                ][field] = "*****"
-        embeddingDependency = model_args_clean["extra_body"]["data_sources"][0][
-            "parameters"
-        ].get("embedding_dependency", {})
+                model_args_clean["extra_body"]["data_sources"][0]["parameters"]["authentication"][field] = "*****"
+        
+        embeddingDependency = model_args_clean["extra_body"]["data_sources"][0]["parameters"].get("embedding_dependency", {})
         if "authentication" in embeddingDependency:
             for field in embeddingDependency["authentication"]:
                 if field in secret_params:
-                    model_args_clean["extra_body"]["data_sources"][0]["parameters"][
-                        "embedding_dependency"
-                    ]["authentication"][field] = "*****"
+                    model_args_clean["extra_body"]["data_sources"][0]["parameters"]["embedding_dependency"]["authentication"][field] = "*****"
 
     logging.debug(f"REQUEST BODY: {json.dumps(model_args_clean, indent=4)}")
 
     return model_args
+
 
 
 async def promptflow_request(request):
@@ -637,7 +646,7 @@ async def list_conversations():
         return jsonify({"error": f"No conversations for {user_id} were found"}), 404
 
     ## return the conversation ids
-
+    print("new line for commit")
     return jsonify(conversations), 200
 
 
